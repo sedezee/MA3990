@@ -7,11 +7,30 @@ def __lu_factor(A):
     L = np.identity(n)
     U = A
     for i in range(n): 
+        # L[i+1:n, i] = U[i+1:n, i] / U[i,i]; 
+        # U[j] = (U[i+1:n] = (U[i+1:n] - (L[i+1:n, i] * U[i])))
         for j in range(i+1, n):
             L[j, i] = U[j,i] / U[i,i]
             U[j] = (U[j] - (L[j,i] * U[i]))
     
     return L, U
+
+def __plu_factor(A): 
+    n = len(A)
+    
+    P = np.identity(n)
+    L = np.identity(n)
+    U = A
+
+    for i in range(n):
+
+        for k in range(i,n):
+            if not np.isclose(U[i,i], 0):
+                break
+            U[[k, k+1]] = U[[k+1, k]] # swaps row U_i with row U_{k+1}
+            P[[k, k+1]] = P[[k+1, k]] # swaps row P_i with row P_{k+1}
+
+    return P 
 
 # Forward substitution for lower triangular    
 def __forward_solve(A, b):
@@ -39,42 +58,38 @@ def solve(A, b):
     elif np.allclose(A, np.triu(A)): # zero everything below the diagonal, compare with A. Are they the same? 
         x = __backward_solve(A, b) # if they are, backward sub
     else:
-        [L, U] = __lu_factor(A) # if not, run the LU_Factor method and solve for y, then x 
-        y = solve(L, b)
+        P = __plu_factor(A)
+        [L, U] = __lu_factor(np.dot(P, A)) # if not, run the LU_Factor method and solve for y, then x 
+        y = solve(L, np.dot(P, b))
         x = solve(U, y)
     return x 
 
 ## FUNCTION CALLS
-
-print("LU CALLS: ")
+print("## BASIC SOLVE WITHOUT PIVOT: \n")
 A = np.array([[7,-2,1], [14,-7,-3], [-7,11,18]])
 b = np.array([12,17,5])
-[L,U] = __lu_factor(A)
-print(f"L: \n{L}\n")
-print(f"U: \n{U}\n")
+
+print(f"A: \n{A}\n")
+print(f"B: \n{b}\n")
 
 ## EXPECTED RESULTS
-print("\nEXPECTED RESULTS: ")
-# Ly = b
-y = np.linalg.inv(L).dot(b)
-print(f"y: {y}\n")
+print("\n### EXPECTED RESULTS: ")
+x = np.linalg.solve(A,b)
+print(f"{x}")
 
-# Ux = y
-x = np.linalg.inv(U).dot(y)
-print(f"x: {x}")
+## FULL SOLVE 
+print("\n### FULL SOLVE:")
+print(f"{solve(A,b)}")
 
-# alternatively, by hand...
-print("\nHARDCODED SOLVE WITH PRIOR LU\n")
+print("\n")
 
-# Ly = b
+## PIVOT TESTS
+print("## BASIC SOLVE WITH PIVOT: ")
+A = np.array([[3,2,-4],[2,3,3],[5,-3,1]])
+b = np.array([3,15,14])
 
-y = solve(L,  b)
-print(f"y: {y}\n")
+print("\n### EXPECTED RESULTS:")
+print(f"\n{np.linalg.solve(A,b)}\n")
 
-# Ux = y
-
-x = solve(U, y)
-print(f"x: {x}")
-
-print("\nFULL SOLVE:")
-print(f"x: {solve(A,b)}")
+print("\n### FULL SOLVE:")
+print(f"\n{solve(A,b)}\n")
